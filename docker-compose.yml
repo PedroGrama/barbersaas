@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: barbersaas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: barbersaas
+      POSTGRES_USER: barbersaas
+      POSTGRES_PASSWORD: barbersaas_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - barbersaas_pgdata:/var/lib/postgresql/data
+
+volumes:
+  barbersaas_pgdata:

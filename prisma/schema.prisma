@@ -1,0 +1,295 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin_geral
+  tenant_admin
+  barbeiro
+}
+
+enum AppointmentOrigin {
+  app
+  admin_panel
+  walk_in
+}
+
+enum AppointmentStatus {
+  confirmed
+  in_progress
+  awaiting_payment
+  done
+  cancelled
+  no_show
+}
+
+enum PaymentMethod {
+  PIX_DIRECT
+  CASH
+  MERCADO_PAGO_PIX
+  MERCADO_PAGO_CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PixKeyOwnerType {
+  TENANT
+  USER
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+  EVP
+}
+
+enum TenantPaymentMode {
+  PIX_DIRECT
+  MERCADO_PAGO
+  BOTH
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  cnpj      String?  @db.VarChar(18)
+  ownerName String?  @map("owner_name")
+  email     String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(30)
+  address   String?
+  logoUrl   String?  @map("logo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users            User[]
+  clients          Client[]
+  services         Service[]
+  businessHours    TenantBusinessHour[]
+  appointments     Appointment[]
+  pixKeys          PixKey[]
+  paymentSettings  TenantPaymentSettings?
+  payments         Payment[]
+  appointmentItems AppointmentItem[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String?  @map("tenant_id")
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  isBarber     Boolean  @default(false) @map("is_barber")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant                Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  appointmentsAsBarber  Appointment[]           @relation("AppointmentBarber")
+  appointmentItemsAdded AppointmentItem[]       @relation("AppointmentItemAddedBy")
+  paymentsCreated       Payment[]               @relation("PaymentCreatedBy")
+  pixKeysOwned          PixKey[]                @relation("PixKeyOwnerUser")
+  clientsUpdated        Client[]                @relation("ClientUpdatedBy")
+  reschedulesChanged    AppointmentReschedule[] @relation("AppointmentRescheduleChangedBy")
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Client {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  phone           String   @db.VarChar(30)
+  email           String?  @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedByUserId String?  @map("updated_by_user_id")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  updatedBy    User?         @relation("ClientUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+  @@map("clients")
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  durationMinutes Int      @map("duration_minutes")
+  basePrice       Decimal  @map("base_price") @db.Decimal(10, 2)
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointmentItems AppointmentItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("services")
+}
+
+model TenantBusinessHour {
+  id         String  @id @default(cuid())
+  tenantId   String  @map("tenant_id")
+  weekday    Int
+  startTime  String  @map("start_time") @db.VarChar(5) // "09:00"
+  endTime    String  @map("end_time") @db.VarChar(5) // "19:00"
+  breakStart String? @map("break_start_time") @db.VarChar(5)
+  breakEnd   String? @map("break_end_time") @db.VarChar(5)
+  isClosed   Boolean @default(false) @map("is_closed")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_business_hours")
+}
+
+model TenantPaymentSettings {
+  tenantId                String            @id @map("tenant_id")
+  paymentMode             TenantPaymentMode @map("payment_mode")
+  defaultPixKeyId         String?           @unique @map("default_pix_key_id")
+  allowCash               Boolean           @default(true) @map("allow_cash")
+  allowBarberSelectPixKey Boolean           @default(true) @map("allow_barber_select_pix_key")
+
+  tenant        Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  defaultPixKey PixKey? @relation("DefaultTenantPixKey", fields: [defaultPixKeyId], references: [id], onDelete: SetNull)
+
+  @@map("tenant_payment_settings")
+}
+
+model Appointment {
+  id                String            @id @default(cuid())
+  tenantId          String            @map("tenant_id")
+  clientId          String            @map("client_id")
+  barberId          String            @map("barber_id")
+  scheduledStart    DateTime          @map("scheduled_start")
+  scheduledEnd      DateTime          @map("scheduled_end")
+  origin            AppointmentOrigin
+  status            AppointmentStatus
+  pricingOriginal   Decimal           @map("pricing_original") @db.Decimal(10, 2)
+  discountApplied   Decimal           @map("discount_applied") @db.Decimal(10, 2)
+  pricingFinal      Decimal           @map("pricing_final") @db.Decimal(10, 2)
+  notes             String?
+  clientConfirmedAt DateTime?         @map("client_confirmed_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client      Client                  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  barber      User                    @relation("AppointmentBarber", fields: [barberId], references: [id], onDelete: Restrict)
+  items       AppointmentItem[]
+  payments    Payment[]
+  reschedules AppointmentReschedule[]
+
+  @@index([tenantId])
+  @@index([tenantId, scheduledStart])
+  @@index([tenantId, barberId, scheduledStart])
+  @@map("appointments")
+}
+
+model AppointmentItem {
+  id                      String   @id @default(cuid())
+  appointmentId           String   @map("appointment_id")
+  tenantId                String   @map("tenant_id")
+  serviceId               String?  @map("service_id")
+  nameSnapshot            String   @map("name_snapshot")
+  durationMinutesSnapshot Int      @map("duration_minutes_snapshot")
+  unitPriceSnapshot       Decimal  @map("unit_price_snapshot") @db.Decimal(10, 2)
+  quantity                Int      @default(1)
+  addedByUserId           String   @map("added_by_user_id")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  service     Service?    @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  addedBy     User        @relation("AppointmentItemAddedBy", fields: [addedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([appointmentId])
+  @@map("appointment_items")
+}
+
+model AppointmentReschedule {
+  id              String   @id @default(cuid())
+  appointmentId   String   @map("appointment_id")
+  oldStart        DateTime @map("old_start")
+  oldEnd          DateTime @map("old_end")
+  newStart        DateTime @map("new_start")
+  newEnd          DateTime @map("new_end")
+  reason          String
+  changedByUserId String   @map("changed_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  changedBy   User        @relation("AppointmentRescheduleChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([appointmentId])
+  @@map("appointment_reschedules")
+}
+
+model PixKey {
+  id           String          @id @default(cuid())
+  tenantId     String          @map("tenant_id")
+  ownerType    PixKeyOwnerType @map("owner_type")
+  ownerUserId  String?         @map("owner_user_id")
+  keyType      PixKeyType      @map("key_type")
+  keyValue     String          @map("key_value")
+  receiverName String          @map("receiver_name")
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerUser        User?                  @relation("PixKeyOwnerUser", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  payments         Payment[]
+  defaultForTenant TenantPaymentSettings? @relation("DefaultTenantPixKey")
+
+  @@index([tenantId])
+  @@index([tenantId, keyValue])
+  @@map("pix_keys")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  tenantId          String        @map("tenant_id")
+  appointmentId     String        @map("appointment_id")
+  method            PaymentMethod
+  status            PaymentStatus
+  amount            Decimal       @db.Decimal(10, 2)
+  pixKeyId          String?       @map("pix_key_id")
+  provider          String?
+  providerPaymentId String?       @map("provider_payment_id")
+  paidAt            DateTime?     @map("paid_at")
+  createdByUserId   String?       @map("created_by_user_id")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  pixKey      PixKey?     @relation(fields: [pixKeyId], references: [id], onDelete: SetNull)
+  createdBy   User?       @relation("PaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, appointmentId])
+  @@map("payments")
+}
