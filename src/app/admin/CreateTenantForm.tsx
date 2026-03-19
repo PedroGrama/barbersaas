@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Plus, Store, Mail, Lock } from "lucide-react";
 
 export function CreateTenantForm() {
   const router = useRouter();
@@ -39,55 +41,81 @@ export function CreateTenantForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-zinc-900">Criar nova barbearia</h2>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-zinc-700">Nome</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900"
-            placeholder="Barbearia XYZ"
-            required
-          />
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+      className="space-y-6 rounded-3xl border border-white/5 bg-white/3 backdrop-blur-xl p-8 shadow-2xl h-full"
+    >
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+          <Plus className="w-5 h-5" />
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-zinc-700">Email admin</label>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900"
-            placeholder="admin@barbearia.com"
-            type="email"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-zinc-700">Senha</label>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900"
-            placeholder="********"
-            type="password"
-            required
-          />
-        </div>
+        <h2 className="text-xl font-bold text-white">Novo Estabelecimento</h2>
       </div>
 
-      {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <Store className="w-3 h-3" /> Nome do Negócio
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+              placeholder="Ex: StudioFlow Premium"
+              required
+            />
+          </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-      >
-        {loading ? "Criando…" : "Criar barbearia"}
-      </button>
-    </form>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <Mail className="w-3 h-3" /> Email do Administrador
+            </label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+              placeholder="admin@exemplo.com"
+              type="email"
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <Lock className="w-3 h-3" /> Senha Inicial
+            </label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+              placeholder="********"
+              type="password"
+              required
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2"
+        >
+          {loading ? "Processando..." : (
+            <>
+              Criar Estabelecimento <Plus className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+    </motion.div>
   );
 }

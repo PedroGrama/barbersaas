@@ -12,9 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { ToastProvider } from "@/components/ToastProvider";
+import { Poppins } from "next/font/google";
+
+const poppins = Poppins({
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+});
+
 export const metadata: Metadata = {
-  title: "BarberSaaS",
-  description: "Plataforma multi-tenant para barbearias",
+  title: "StudioFlow",
+  description: "Plataforma multi-tenant para estabelecimentos",
 };
 
 export default function RootLayout({
@@ -25,9 +34,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased text-zinc-900 bg-zinc-50`}
+        className={`${poppins.variable} font-sans antialiased text-zinc-900 bg-zinc-50`}
       >
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

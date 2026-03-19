@@ -18,6 +18,18 @@ enum UserRole {
   barbeiro
 }
 
+enum LicencaTipo {
+  TESTE_GRATIS
+  MENSALISTA
+  TAXA_POR_SERVICO
+}
+
+enum TenantStatus {
+  ATIVO
+  SUSPENSO
+  INADIMPLENTE
+}
+
 enum AppointmentOrigin {
   app
   admin_panel
@@ -76,6 +88,18 @@ model Tenant {
   phone     String?  @db.VarChar(30)
   address   String?
   logoUrl   String?  @map("logo_url")
+  slug      String?  @unique
+  pixKey    String?  @map("pix_key")
+  allowChooseBarber Boolean @default(true) @map("allow_choose_barber")
+  
+  licencaTipo      LicencaTipo   @default(TESTE_GRATIS) @map("licenca_tipo")
+  status           TenantStatus  @default(ATIVO)
+  testeExpiraEm    DateTime?     @map("teste_expira_em")
+  mensalidadeValor Decimal?      @map("mensalidade_valor") @db.Decimal(10, 2)
+  taxaServicoPct   Decimal?      @default(3.0) @map("taxa_servico_pct") @db.Decimal(5, 2)
+  saldoDevedor     Decimal       @default(0) @map("saldo_devedor") @db.Decimal(10, 2)
+  limiteCancelamentoMensal Int   @default(20) @map("limite_cancelamento_mensal")
+
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -88,6 +112,11 @@ model Tenant {
   paymentSettings  TenantPaymentSettings?
   payments         Payment[]
   appointmentItems AppointmentItem[]
+  barberBusinessHours BarberBusinessHour[]
+  
+  transacoesTaxa   TransacaoTaxa[]
+  cancelamentoLogs CancelamentoLog[]
+  historicoLicencas HistoricoLicenca[]
 
   @@map("tenants")
 }
@@ -101,6 +130,7 @@ model User {
   role         UserRole
   isActive     Boolean  @default(true) @map("is_active")
   isBarber     Boolean  @default(false) @map("is_barber")
+  deletedAt    DateTime? @map("deleted_at")
   createdAt    DateTime @default(now()) @map("created_at")
 
   tenant                Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: SetNull)
@@ -110,6 +140,8 @@ model User {
   pixKeysOwned          PixKey[]                @relation("PixKeyOwnerUser")
   clientsUpdated        Client[]                @relation("ClientUpdatedBy")
   reschedulesChanged    AppointmentReschedule[] @relation("AppointmentRescheduleChangedBy")
+  businessHours         BarberBusinessHour[]
+  cancelamentoLogs      CancelamentoLog[]
 
   @@index([tenantId])
   @@map("users")
@@ -202,6 +234,7 @@ model Appointment {
   items       AppointmentItem[]
   payments    Payment[]
   reschedules AppointmentReschedule[]
+  transacoesTaxa TransacaoTaxa[]
 
   @@index([tenantId])
   @@index([tenantId, scheduledStart])
@@ -292,4 +325,93 @@ model Payment {
   @@index([tenantId])
   @@index([tenantId, appointmentId])
   @@map("payments")
+}
+
+model BarberBusinessHour {
+  id         String  @id @default(cuid())
+  tenantId   String  @map("tenant_id")
+  barberId   String  @map("barber_id")
+  weekday    Int
+  startTime  String  @map("start_time") @db.VarChar(5) // "09:00"
+  endTime    String  @map("end_time") @db.VarChar(5) // "19:00"
+  breakStart String? @map("break_start_time") @db.VarChar(5)
+  breakEnd   String? @map("break_end_time") @db.VarChar(5)
+  isClosed   Boolean @default(false) @map("is_closed")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  barber User   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([barberId])
+  @@map("barber_business_hours")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model SystemConfig {
+  id               String   @id @default("global")
+  contactEmail     String   @default("suporte@studioflow.com")
+  contactPhone     String   @default("")
+  platformPixKey   String   @default("")
+  defaultTaxPct    Decimal  @default(3.0) @db.Decimal(5, 2)
+  defaultMonthlyFee Decimal @default(99.00) @db.Decimal(10, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("system_configs")
+}
+
+model TransacaoTaxa {
+  id             String      @id @default(cuid())
+  tenantId       String      @map("tenant_id")
+  appointmentId  String?     @map("appointment_id")
+  amount         Decimal     @db.Decimal(10, 2)
+  description    String
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("transacoes_taxa")
+}
+
+model CancelamentoLog {
+  id             String    @id @default(cuid())
+  tenantId       String    @map("tenant_id")
+  barberId       String    @map("barber_id")
+  appointmentId  String    @map("appointment_id")
+  reason         String?
+  pesoMulta      Int       @default(1) @map("peso_multa") 
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  barber         User      @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId, barberId])
+  @@index([createdAt])
+  @@map("cancelamento_logs")
+}
+
+model HistoricoLicenca {
+  id             String      @id @default(cuid())
+  tenantId       String      @map("tenant_id")
+  licencaAnterior LicencaTipo? @map("licenca_anterior")
+  licencaNova    LicencaTipo @map("licenca_nova")
+  modifiedBy     String?     @map("modified_by")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("historico_licencas")
 }

@@ -28,7 +28,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="rounded-full border px-3 py-1 text-xs font-medium text-zinc-800 bg-white/70 hover:bg-zinc-100 data-[theme=dark]:bg-zinc-900 data-[theme=dark]:text-zinc-100"
+      className="rounded-full border px-3 py-1 text-xs font-medium text-zinc-800 bg-white/70 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
     >
       {theme === "light" ? "Modo escuro" : "Modo claro"}
     </button>

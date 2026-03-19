@@ -1,40 +1,82 @@
-import Link from "next/link";
 import { getSessionUser } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateTenantForm } from "@/app/admin/CreateTenantForm";
+import { DashboardClient } from "./DashboardClient";
+import { AdminTenantTable } from "./AdminTenantTable";
+import { redirect } from "next/navigation";
+import { Scissors } from "lucide-react";
 
 export default async function AdminHome() {
   const user = await getSessionUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
+  if (user.role !== "admin_geral") redirect("/tenant");
 
-  const tenants = await prisma.tenant.findMany({
+  const tenants = await prisma.tenant.findMany({ 
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 50,
   });
 
+  const serialized = tenants.map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    isActive: t.isActive,
+    status: t.status ?? "ATIVO",
+    licencaTipo: t.licencaTipo ?? "TESTE_GRATIS",
+    saldoDevedor: Number(t.saldoDevedor ?? 0),
+    testeExpiraEm: t.testeExpiraEm ? (t.testeExpiraEm as Date).toISOString() : null,
+    mensalidadeValor: t.mensalidadeValor ? Number(t.mensalidadeValor) : null,
+    taxaServicoPct: t.taxaServicoPct ? Number(t.taxaServicoPct) : null,
+    createdAt: t.createdAt.toISOString(),
+  }));
+
+  // ── Real KPIs for production ───────────────────────────────────
+  let dashboardData = undefined;
+  if (process.env.NODE_ENV === "production") {
+    const [ativos, inadimplentes, suspensos, agendamentosMes, ticketResult] =
+      await Promise.all([
+        prisma.tenant.count({ where: { status: "ATIVO", isActive: true } } as any),
+        prisma.tenant.count({ where: { status: "INADIMPLENTE", isActive: true } } as any),
+        prisma.tenant.count({ where: { OR: [{ status: "SUSPENSO" }, { isActive: false }] } } as any),
+        prisma.appointment.count({
+          where: {
+            scheduledStart: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+          },
+        }),
+        prisma.payment.aggregate({
+          _avg: { amount: true },
+          where: { status: "PAID" },
+        }),
+      ]);
+
+    dashboardData = {
+      kpis: {
+        tenantsAtivos: ativos,
+        inadimplentes: inadimplentes,
+        inativos: suspensos,
+        ticketMedio: Number(ticketResult._avg.amount ?? 0),
+        agendamentosMes,
+      },
+    };
+  }
+
   return (
-    <div className="min-h-screen bg-white text-zinc-900 px-6 py-6">
-      <header className="border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-blue-500/30">
+      <header className="fixed top-0 w-full bg-zinc-950/80 backdrop-blur-md border-b border-white/5 z-50">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <span className="text-lg font-semibold">BarberSaaS</span>
-            <nav className="hidden gap-3 text-sm text-zinc-700 md:flex">
-              <Link href="/admin" className="hover:text-zinc-900">
-                Dashboard
-              </Link>
-              <Link href="/tenant" className="hover:text-zinc-900">
-                Área da barbearia
-              </Link>
-            </nav>
+            <span className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                <Scissors className="w-4 h-4 text-white" />
+              </div>
+              StudioFlow <span className="text-[10px] uppercase tracking-widest text-zinc-500 bg-white/5 px-2 py-0.5 rounded ml-2 font-mono">Admin</span>
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-zinc-500 data-[theme=dark]:text-zinc-400 md:inline">
-              {user.email}
-            </span>
+            <span className="hidden text-xs text-zinc-500 md:inline">{user.email}</span>
             <ThemeToggle />
             <form action="/api/auth/logout" method="post">
-              <button className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white">
+              <button className="rounded-full bg-gradient-to-r from-zinc-800 to-zinc-900 border border-white/10 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition">
                 Sair
               </button>
             </form>
@@ -42,36 +84,20 @@ export default async function AdminHome() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
-        <CreateTenantForm />
+      <main className="mx-auto w-full max-w-7xl space-y-12 px-6 pb-20 pt-28">
+        {/* Background Orbs */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-blue-600/5 blur-3xl opacity-50" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-3xl opacity-50" />
+        </div>
 
-        <section className="rounded-2xl border bg-white p-5">
-          <h2 className="font-medium">Barbearias (últimas 20)</h2>
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-zinc-500">
-                <tr>
-                  <th className="py-2 pr-4">Nome</th>
-                  <th className="py-2 pr-4">Ativa</th>
-                  <th className="py-2 pr-4">Criada em</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.map((t) => (
-                  <tr key={t.id} className="border-t">
-                    <td className="py-2 pr-4 font-medium">{t.name}</td>
-                    <td className="py-2 pr-4">{t.isActive ? "Sim" : "Não"}</td>
-                    <td className="py-2 pr-4">
-                      {t.createdAt.toISOString().slice(0, 10)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <DashboardClient data={dashboardData} />
+        
+        <div className="grid lg:grid-cols-2 gap-10">
+          <CreateTenantForm />
+          <AdminTenantTable tenants={serialized} />
+        </div>
       </main>
     </div>
   );
 }
-

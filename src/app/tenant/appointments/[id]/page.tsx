@@ -1,129 +1,82 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { getSessionUser } from "@/server/auth";
 import { prisma } from "@/server/db";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { notFound, redirect } from "next/navigation";
+import { AppointmentWorkflow } from "./AppointmentWorkflow";
 
-export default async function TenantAppointmentPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AppointmentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const user = await getSessionUser();
-  if (!user || !user.tenantId) return null;
-  const { id } = await params;
+  if (!user || !user.tenantId) redirect("/login");
 
-  const appointment = await prisma.appointment.findFirst({
-    where: { id, tenantId: user.tenantId },
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: resolvedParams.id, tenantId: user.tenantId },
     include: {
       client: true,
-      items: true,
-      payments: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
+      barber: true,
+      items: {
+        include: { service: true }
+      }
+    }
   });
+
   if (!appointment) return notFound();
 
-  const latestPayment = appointment.payments[0] ?? null;
+  // Load tenant services for the Review Screen
+  const services = await prisma.service.findMany({
+    where: { tenantId: user.tenantId, isActive: true }
+  });
+
+  // Load Pix Key
+  const pixKey = await prisma.pixKey.findFirst({
+    where: { tenantId: user.tenantId, isActive: true }
+  });
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 data-[theme=dark]:bg-zinc-950 data-[theme=dark]:text-zinc-50">
-      <header className="border-b bg-white/80 backdrop-blur data-[theme=dark]:bg-zinc-950/60 data-[theme=dark]:border-zinc-800">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <span className="text-lg font-semibold">BarberSaaS</span>
-            <nav className="hidden gap-3 text-sm text-zinc-700 data-[theme=dark]:text-zinc-200 md:flex">
-              <Link href="/tenant" className="hover:text-zinc-900 data-[theme=dark]:hover:text-zinc-50">
-                Agenda
-              </Link>
-              <Link href="/tenant/payments" className="hover:text-zinc-900 data-[theme=dark]:hover:text-zinc-50">
-                Pagamentos
-              </Link>
-            </nav>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <h1 className="text-2xl font-semibold">Detalhes do Agendamento</h1>
+      
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-4">
+          <div className="bg-white dark:bg-zinc-900 border dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
+            <h2 className="text-sm text-zinc-500 uppercase font-semibold tracking-wider mb-4">Informações</h2>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="block text-zinc-500">Cliente</span>
+                <span className="font-medium">{appointment.client.name}</span>
+                <span className="block text-xs text-zinc-400">{appointment.client.phone}</span>
+              </div>
+              <div>
+                <span className="block text-zinc-500">Data e Hora</span>
+                <span className="font-medium">
+                  {appointment.scheduledStart.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', hour12: false })}
+                </span>
+              </div>
+              <div>
+                <span className="block text-zinc-500">Barbeiro</span>
+                <span className="font-medium">{appointment.barber.name}</span>
+              </div>
+              <div>
+                <span className="block text-zinc-500">Status</span>
+                <span className="font-bold uppercase tracking-wider">{appointment.status}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <form action="/api/auth/logout" method="post">
-              <button className="rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white">
-                Sair
-              </button>
-            </form>
+          <a href="/tenant" className="block text-center w-full rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700">
+            Voltar para Agenda
+          </a>
+        </div>
+
+        <div className="md:col-span-2">
+          <div className="bg-white dark:bg-zinc-900 border dark:border-zinc-800 p-6 rounded-2xl shadow-sm min-h-[400px]">
+             <AppointmentWorkflow 
+               appointment={appointment} 
+               tenantServices={services} 
+               pixKey={pixKey}
+               currentUserId={user.id}
+             />
           </div>
         </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Agendamento</h1>
-            <p className="mt-1 text-sm text-zinc-600 data-[theme=dark]:text-zinc-400">{appointment.id}</p>
-          </div>
-          <Link className="rounded-xl border bg-white px-3 py-2 text-sm data-[theme=dark]:bg-zinc-950 data-[theme=dark]:border-zinc-800" href="/tenant">
-            Voltar
-          </Link>
-        </header>
-
-        <section className="rounded-2xl border bg-white p-5 space-y-2 data-[theme=dark]:bg-zinc-900 data-[theme=dark]:border-zinc-800">
-          <div className="text-sm text-zinc-600 data-[theme=dark]:text-zinc-400">Cliente</div>
-          <div className="font-medium data-[theme=dark]:text-zinc-50">{appointment.client.name}</div>
-          <div className="text-sm text-zinc-700 data-[theme=dark]:text-zinc-200">{appointment.client.phone}</div>
-          <div className="pt-2 text-sm text-zinc-600 data-[theme=dark]:text-zinc-400">Status</div>
-          <div className="font-medium data-[theme=dark]:text-zinc-50">{appointment.status}</div>
-        </section>
-
-        <section className="rounded-2xl border bg-white p-5 data-[theme=dark]:bg-zinc-900 data-[theme=dark]:border-zinc-800">
-          <h2 className="font-medium">Serviços realizados</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {appointment.items.map((it) => (
-              <li key={it.id} className="flex items-center justify-between border rounded-xl px-3 py-2 data-[theme=dark]:border-zinc-800">
-                <div>
-                  <div className="font-medium data-[theme=dark]:text-zinc-50">{it.nameSnapshot}</div>
-                  <div className="text-zinc-600 data-[theme=dark]:text-zinc-400">
-                    {it.durationMinutesSnapshot} min · x{it.quantity}
-                  </div>
-                </div>
-                <div className="font-medium data-[theme=dark]:text-zinc-50">
-                  R$ {it.unitPriceSnapshot.toFixed(2)}
-                </div>
-              </li>
-            ))}
-            {appointment.items.length === 0 ? (
-              <li className="text-zinc-500 data-[theme=dark]:text-zinc-400">Sem itens ainda.</li>
-            ) : null}
-          </ul>
-        </section>
-
-        <section className="rounded-2xl border bg-white p-5 space-y-3 data-[theme=dark]:bg-zinc-900 data-[theme=dark]:border-zinc-800">
-          <h2 className="font-medium">Cobrança (final do corte)</h2>
-          <div className="text-sm text-zinc-700 data-[theme=dark]:text-zinc-200">
-            Total final: <span className="font-medium">R$ {appointment.pricingFinal.toFixed(2)}</span>
-          </div>
-
-          {latestPayment ? (
-            <div className="rounded-xl border bg-zinc-50 px-3 py-2 text-sm data-[theme=dark]:bg-zinc-950 data-[theme=dark]:border-zinc-800">
-              Último pagamento: <span className="font-medium">{latestPayment.method}</span> ·{" "}
-              <span className="font-medium">{latestPayment.status}</span>
-            </div>
-          ) : (
-            <div className="text-sm text-zinc-600 data-[theme=dark]:text-zinc-400">
-              Nenhuma cobrança liberada ainda.
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            <form action={`/tenant/appointments/${appointment.id}/release-pix`} method="post">
-              <button className="rounded-xl bg-zinc-900 px-3 py-2 text-sm text-white">
-                Liberar PIX (direto)
-              </button>
-            </form>
-            <form action={`/tenant/appointments/${appointment.id}/mark-cash`} method="post">
-              <button className="rounded-xl border bg-white px-3 py-2 text-sm data-[theme=dark]:bg-zinc-950 data-[theme=dark]:border-zinc-800">
-                Marcar pago em dinheiro
-              </button>
-            </form>
-          </div>
-        </section>
-      </main>
+      </div>
     </div>
   );
 }
-
