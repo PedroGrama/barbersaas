@@ -34,13 +34,14 @@ export default async function TenantSettingsPage() {
     mensalidadeValor: t.mensalidadeValor ? Number(t.mensalidadeValor) : null,
     taxaServicoPct: t.taxaServicoPct ? Number(t.taxaServicoPct) : null,
     testeExpiraEm: t.testeExpiraEm ? (t.testeExpiraEm as Date).toISOString() : null,
+    checkinMinutes: t.checkinMinutes ?? 15,
   };
 
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-semibold">Configurações do Estabelecimento</h1>
-        <p className="text-sm text-zinc-500">Personalize o nome, logotipo, chave PIX e a URL de agendamento do seu StudioFlow.</p>
+        <p className="text-sm text-zinc-500">Personalize o nome, logotipo, chave PIX e a URL de agendamento do seu BladeHub.</p>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border dark:border-zinc-800 rounded-2xl p-6 shadow-sm">

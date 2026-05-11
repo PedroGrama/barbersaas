@@ -1,9 +1,10 @@
 import { getSessionUser } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { redirect } from "next/navigation";
-import { ReportsFilter } from "./ReportsFilter";
+import { ReportsFilter } from "@/app/tenant/reports/ReportsFilter";
 
-export default async function ReportsPage({ searchParams }: { searchParams: { start?: string, end?: string, barber?: string } }) {
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ start?: string, end?: string, barber?: string }> }) {
+  const resolvedSearchParams = await searchParams;
   const user = await getSessionUser();
   if (!user || (!user.tenantId && user.role !== "admin_geral")) redirect("/login");
   if (!user.tenantId) return <div className="p-6">Selecione uma barbearia.</div>;
@@ -12,11 +13,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: { st
 
   // Calculate Dates
   const today = new Date();
-  const startParam = searchParams.start ? new Date(searchParams.start) : new Date(today.getFullYear(), today.getMonth(), 1);
-  const endParam = searchParams.end ? new Date(searchParams.end) : new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+  const startParam = resolvedSearchParams.start ? new Date(resolvedSearchParams.start) : new Date(today.getFullYear(), today.getMonth(), 1);
+  const endParam = resolvedSearchParams.end ? new Date(resolvedSearchParams.end) : new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
 
   // Barber filter enforced
-  const enforcedBarberId = isAdmin ? (searchParams.barber || undefined) : user.id;
+  const enforcedBarberId = isAdmin ? (resolvedSearchParams.barber || undefined) : user.id;
 
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -71,19 +72,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: { st
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 dark:bg-zinc-950 border-b dark:border-zinc-800 text-zinc-500">
             <tr>
-              <th className="px-5 py-3 font-medium">Data</th>
-              <th className="px-5 py-3 font-medium">Cliente</th>
-              {isAdmin && <th className="px-5 py-3 font-medium">Barbeiro</th>}
-              <th className="px-5 py-3 font-medium text-right">Faturamento</th>
+              <th className="px-5 py-3 font-medium text-[10px] font-black uppercase tracking-widest">Data</th>
+              <th className="px-5 py-3 font-medium text-[10px] font-black uppercase tracking-widest">Cliente</th>
+              <th className="px-5 py-3 font-medium text-[10px] font-black uppercase tracking-widest">Telefone</th>
+              {isAdmin && <th className="px-5 py-3 font-medium text-[10px] font-black uppercase tracking-widest">Profissional</th>}
+              <th className="px-5 py-3 font-medium text-right text-[10px] font-black uppercase tracking-widest">Faturamento</th>
             </tr>
           </thead>
           <tbody className="divide-y dark:divide-zinc-800">
             {appointments.map(a => (
-              <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                <td className="px-5 py-3">{a.scheduledStart.toLocaleDateString()} {a.scheduledStart.toLocaleTimeString().slice(0, 5)}</td>
-                <td className="px-5 py-3 font-medium dark:text-zinc-50">{a.client.name} {a.client.phone && <span className="text-xs text-zinc-400 font-normal ml-2">{a.client.phone}</span>}</td>
-                {isAdmin && <td className="px-5 py-3 text-zinc-500">{a.barber?.name}</td>}
-                <td className="px-5 py-3 text-right font-medium">R$ {Number(a.pricingFinal).toFixed(2)}</td>
+              <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <td className="px-5 py-4 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  {a.scheduledStart.toLocaleDateString('pt-BR')} <span className="opacity-50">{a.scheduledStart.toLocaleTimeString('pt-BR').slice(0, 5)}</span>
+                </td>
+                <td className="px-5 py-4 font-bold text-zinc-900 dark:text-zinc-100">{a.client.name}</td>
+                <td className="px-5 py-4 text-xs text-zinc-500 font-medium">{a.client.phone || "-"}</td>
+                {isAdmin && <td className="px-5 py-4 text-xs font-semibold text-blue-600 dark:text-blue-400">{a.barber?.name}</td>}
+                <td className="px-5 py-4 text-right font-black text-sm text-zinc-900 dark:text-zinc-50">R$ {Number(a.pricingFinal).toFixed(2)}</td>
               </tr>
             ))}
             {appointments.length === 0 && (

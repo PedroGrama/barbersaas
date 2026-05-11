@@ -4,7 +4,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { LicenseManager } from "./LicenseManager";
 import { impersonateTenant } from "./actions";
-import { Building2, CreditCard, Calendar, ArrowUpRight, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Building2, CreditCard, Calendar, ArrowUpRight, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import Link from "next/link";
 
 type Tenant = {
   id: string;
@@ -89,6 +90,13 @@ export function AdminTenantTable({ tenants }: { tenants: Tenant[] }) {
                 </td>
                 <td className="py-4">
                   <div className="flex gap-2 items-center">
+                    <Link
+                      href={`/admin/tenants/${t.id}`}
+                      className="p-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition shadow-sm"
+                      title="Detalhes do Estabelecimento"
+                    >
+                      <Info className="w-4 h-4" />
+                    </Link>
                     <button
                       onClick={() => setManaging(t)}
                       className="p-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition shadow-sm"

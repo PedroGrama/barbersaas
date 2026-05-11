@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { getSessionUser } from "@/server/auth";
 import bcrypt from "bcryptjs";
+import { checkTenantBarberLimit } from "@/server/tenantLimits";
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -18,6 +19,12 @@ export async function POST(req: Request) {
 
     if (user.role === "tenant_admin" && user.tenantId !== tenantId) {
       return NextResponse.json({ error: "Acesso não autorizado ao estabelecimento" }, { status: 403 });
+    }
+
+    // Check limit for TESTE_GRATIS
+    const limitCheck = await checkTenantBarberLimit(tenantId);
+    if (!limitCheck.ok) {
+      return NextResponse.json({ error: limitCheck.message }, { status: 403 });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -44,8 +51,14 @@ export async function POST(req: Request) {
       endTime: "19:00",
       isClosed: i === 0, // Domingo fechado por padrão para novos barbeiros
     }));
-    await (prisma as any).barberBusinessHour.createMany({
-      data: defaultHours.map(dh => ({ ...dh, tenantId, barberId: newBarber.id })),
+    await prisma.barberBusinessHour.createMany({
+      data: defaultHours.map(dh => ({ 
+        ...dh, 
+        tenantId, 
+        barberId: newBarber.id,
+        breakStart: null,
+        breakEnd: null 
+      })),
     });
 
     return NextResponse.json({ success: true, id: newBarber.id });

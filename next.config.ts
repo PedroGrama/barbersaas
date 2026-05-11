@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  devIndicators: { appIsrStatus: false },
+  /* config options here */
 };
 
 export default nextConfig;
+// Force Next.js Fast Refresh to clear Prisma Client Node cache

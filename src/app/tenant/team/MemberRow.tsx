@@ -7,7 +7,7 @@ import {
   UserCog, ShieldAlert, CheckCircle2, AlertCircle, 
   Mail, User, Edit3, X, Save, Calendar
 } from "lucide-react";
-import { useToast } from "@/components/ToastProvider";
+import { useNotification } from "@/components/ToastProvider";
 
 export function MemberRow({ member, currentUserRole }: { member: any; currentUserRole: string }) {
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export function MemberRow({ member, currentUserRole }: { member: any; currentUse
   const [editName, setEditName] = useState(member.name || "");
   const [editEmail, setEditEmail] = useState(member.email || "");
   const [showMenu, setShowMenu] = useState(false);
-  const { toast } = useToast();
+  const { toast, confirm } = useNotification();
 
   const isAdmin = currentUserRole === "tenant_admin" || currentUserRole === "admin_geral";
   const canSuspend = isAdmin && member.role !== "tenant_admin" && member.role !== "admin_geral";
@@ -45,7 +45,14 @@ export function MemberRow({ member, currentUserRole }: { member: any; currentUse
   };
 
   const handleDelete = async () => {
-    if (confirm(`Tem certeza que deseja excluir ${member.name}? Esta ação não pode ser desfeita.`)) {
+    const ok = await confirm({
+      title: "Confirmar Exclusão",
+      message: `Tem certeza que deseja excluir ${member.name}? Esta ação não pode ser desfeita. Todos os dados associados serão removidos.`,
+      confirmLabel: "Excluir Membro",
+      cancelLabel: "Voltar"
+    });
+
+    if (ok) {
       setLoading(true);
       try {
         await deleteMember(member.id);
@@ -85,7 +92,15 @@ export function MemberRow({ member, currentUserRole }: { member: any; currentUse
   };
 
   const handlePromoteToAdmin = async () => {
-    if (!confirm(`Promover ${member.name} a Admin? Ele terá acesso total ao painel gerenciador.`)) return;
+    const ok = await confirm({
+      title: "Promover Administrador",
+      message: `Promover ${member.name} a Admin? Ele terá acesso total a todas as configurações e dados do estabelecimento no painel gerenciador.`,
+      confirmLabel: "Promover Agora",
+      cancelLabel: "Cancelar"
+    });
+
+    if (!ok) return;
+
     setLoading(true);
     try {
       await promoteToAdmin(member.id);
@@ -187,16 +202,16 @@ export function MemberRow({ member, currentUserRole }: { member: any; currentUse
                 {member.isActive ? "Suspender" : "Ativar Membro"}
               </button>
             )}
-            {!isOtherAdmin && (
+            {isAdmin && !isOtherAdmin && (
               <button 
                 onClick={handleToggleIsBarber}
                 className={`text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-2xl border transition-all duration-300 h-11 flex items-center justify-center ${
                   member.isBarber 
                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-xl shadow-zinc-900/10 dark:shadow-white/5' 
-                    : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-white/5 hover:bg-zinc-100 hover:text-zinc-600'
+                    : 'bg-zinc-50 dark:bg-zinc-800 text-rose-500 border-zinc-100 dark:border-white/5 hover:bg-zinc-100 hover:text-rose-600'
                 }`}
               >
-                {member.isBarber ? "Agenda Ativa" : "Configurar Agenda"}
+                {member.isBarber ? "Agenda Ativa" : "Atendimento Pausado"}
               </button>
             )}
           </div>
@@ -253,9 +268,11 @@ export function MemberRow({ member, currentUserRole }: { member: any; currentUse
                   <button onClick={() => { handlePasswordReset(); setShowMenu(false); }} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 transition-all">
                     <Key className="w-4 h-4" /> Alterar Senha
                   </button>
-                  <button onClick={() => { handleToggleIsBarber(); setShowMenu(false); }} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 transition-all">
-                    <Calendar className="w-4 h-4" /> Alternar Agenda
-                  </button>
+                  {isAdmin && (
+                    <button onClick={() => { handleToggleIsBarber(); setShowMenu(false); }} className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 transition-all">
+                      <Calendar className="w-4 h-4" /> {member.isBarber ? "Pausar Atendimento" : "Ativar Agenda"}
+                    </button>
+                  )}
                   {isAdmin && !isOtherAdmin && (
                     <>
                       <div className="h-[1px] bg-zinc-100 dark:bg-white/5 my-1" />

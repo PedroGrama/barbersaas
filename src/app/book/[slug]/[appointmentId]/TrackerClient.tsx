@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { doCheckIn } from "./actions";
+import { useNotification } from "@/components/ToastProvider";
 
 export function TrackerClient({ appointment, slug }: { appointment: any, slug: string }) {
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const [checkedIn, setCheckedIn] = useState(appointment.checkedIn);
+  const { toast } = useNotification();
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 10000); // update every 10s
@@ -15,8 +17,9 @@ export function TrackerClient({ appointment, slug }: { appointment: any, slug: s
 
   const scheduledStart = new Date(appointment.scheduledStart);
   const diffMinutes = (scheduledStart.getTime() - now.getTime()) / 60000;
+  const checkinLimit = appointment.checkinMinutes || 15;
 
-  const canCheckIn = diffMinutes <= 30 && diffMinutes > 0 && !checkedIn && appointment.status !== "cancelled";
+  const canCheckIn = diffMinutes <= checkinLimit && diffMinutes > 0 && !checkedIn && appointment.status !== "cancelled";
   const isWarning = diffMinutes <= 10 && diffMinutes > 0 && !checkedIn && appointment.status !== "cancelled";
 
   async function handleCheckIn() {
@@ -24,9 +27,9 @@ export function TrackerClient({ appointment, slug }: { appointment: any, slug: s
     try {
       await doCheckIn(appointment.id);
       setCheckedIn(true);
-      alert("Check-in realizado com sucesso! Aguarde ser chamado.");
+      toast("Check-in realizado com sucesso! Aguarde ser chamado.", "success");
     } catch (e: any) {
-      alert(e.message);
+      toast(e.message, "error");
     }
     setLoading(false);
   }
@@ -42,7 +45,7 @@ export function TrackerClient({ appointment, slug }: { appointment: any, slug: s
       <div className="bg-zinc-50 dark:bg-zinc-950 border dark:border-zinc-800 rounded-2xl p-4 mb-6 text-left">
         <div className="flex justify-between items-center py-2 border-b dark:border-zinc-800">
           <span className="text-zinc-500">Data e Hora</span>
-          <span className="font-semibold">{scheduledStart.toLocaleString()}</span>
+          <span className="font-semibold">{scheduledStart.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
         </div>
         <div className="flex justify-between items-center py-2 border-b dark:border-zinc-800">
           <span className="text-zinc-500">Valor Previsto</span>
@@ -83,7 +86,7 @@ export function TrackerClient({ appointment, slug }: { appointment: any, slug: s
             </button>
           ) : (
              <div className="text-sm text-zinc-500 mt-4 p-4 border border-dashed rounded-xl dark:border-zinc-800">
-               O botão de Check-in só será liberado 30 minutos antes do seu horário marcado. Salve este link.
+               O botão de Check-in só será liberado {checkinLimit} minutos antes do seu horário marcado. Salve este link.
              </div>
           )}
         </>

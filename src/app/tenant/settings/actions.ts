@@ -16,9 +16,13 @@ export async function updateTenantSettings(formData: FormData) {
   const slug = formData.get("slug") as string;
   const logoUrl = formData.get("logoUrl") as string;
   const pixKey = formData.get("pixKey") as string;
-  const allowChooseBarber = formData.get("allowChooseBarber") === "on";
+  const allowChooseBarber = formData.get("allowChooseBarber") === "on" || formData.get("allowChooseBarber") === "true";
+  
+  const checkinMinutesStr = formData.get("checkinMinutes") as string;
+  const checkinMinutes = parseInt(checkinMinutesStr, 10);
 
   if (!name || !slug) throw new Error("Nome e URL são obrigatórios.");
+  if (isNaN(checkinMinutes) || checkinMinutes < 5 || checkinMinutes > 60) throw new Error("Tempo de check-in inválido (deve ser entre 5 e 60 minutos).");
 
   // Check unique slug validation
   const existingSlug = await prisma.tenant.findFirst({
@@ -31,7 +35,14 @@ export async function updateTenantSettings(formData: FormData) {
 
   await prisma.tenant.update({
     where: { id: tenantId },
-    data: { name, slug, logoUrl, pixKey, allowChooseBarber }
+    data: { 
+      name, 
+      slug, 
+      logoUrl, 
+      pixKey, 
+      allowChooseBarber,
+      checkinMinutes
+    }
   });
 
   revalidatePath("/tenant/settings");

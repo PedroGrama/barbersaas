@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { createPublicAppointment } from "./actions";
+import { useState, useEffect } from "react";
+import { createPublicAppointment, validateInitialSlot, getAvailableBarbers } from "./actions";
 import { useRouter } from "next/navigation";
 
+import { TimePickerSheet } from "@/components/booking/TimePickerSheet";
+
 type BookingWizardProps = {
-  tenant: { id: string, name: string, logoUrl: string | null, allowChooseBarber: boolean };
+  tenant: { 
+    id: string, name: string, slug: string | null, logoUrl: string | null, allowChooseBarber: boolean, checkinMinutes: number,
+    businessHours: { weekday: number, startTime: string, endTime: string, isClosed: boolean }[]
+  };
   services: { id: string, name: string, basePrice: number, durationMinutes: number }[];
   barbers: { id: string, name: string }[];
 };
@@ -15,18 +20,102 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Workflow State
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("10:00");
-  const [barberId, setBarberId] = useState(""); // empty means 'qualquer um' (round-robin)
-  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
-  const router = useRouter();
-
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
   const nextWeekStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA');
 
+  // Workflow State
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [date, setDate] = useState(todayStr); // Auto-select today
+  const [time, setTime] = useState("");
+  const [barberId, setBarberId] = useState(""); // empty means 'qualquer um' (round-robin)
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
+  const [availableBarbers, setAvailableBarbers] = useState(barbers); // Dynamic list
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const router = useRouter();
+
+  // Phone Mask
+  const handlePhoneChange = (val: string) => {
+    let v = val.replace(/\D/g, "");
+    if (v.length > 11) v = v.slice(0, 11);
+    if (v.length > 2) v = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+    if (v.length > 10) v = `${v.substring(0, 10)}-${v.substring(10)}`;
+    setClientPhone(v);
+  };
+
+  // Fetch available barbers when date/time change
+  useEffect(() => {
+    async function fetchBarbers() {
+      if (!tenant.allowChooseBarber) return;
+      if (!date || !time) return;
+      try {
+        const list = await getAvailableBarbers(tenant.id, date, time);
+        setAvailableBarbers(list);
+        if (!list.find(b => b.id === barberId)) {
+          setBarberId(""); // Reset if selected barber is no longer available
+        }
+      } catch (err: any) {
+        console.error(err);
+      }
+    }
+    fetchBarbers();
+  }, [date, time, tenant.id, tenant.allowChooseBarber]);
+
+  // Fetch booked slots for TimePicker
+  useEffect(() => {
+    async function fetchSlots() {
+      if (!date) return;
+      setLoadingSlots(true);
+      try {
+        const res = await fetch(`/api/bookings/slots?tenantId=${tenant.id}&date=${date}${barberId ? `&barberId=${barberId}` : ""}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setBookedSlots(data);
+          
+          if (!time) {
+            // "Set default booking time to the closest available slot"
+            // For the selected day, we map business hours
+            const jsDate = new Date(`${date}T00:00:00`);
+            const targetWeekday = jsDate.getDay();
+            const bh = tenant.businessHours.find(b => b.weekday === targetWeekday);
+            if (bh && !bh.isClosed) {
+               const openHour = parseInt(bh.startTime.split(":")[0]);
+               const closeHour = parseInt(bh.endTime.split(":")[0]);
+               const now = new Date();
+               let fallbackSlot = "";
+               
+               for (let h = openHour; h <= closeHour; h++) {
+                 for (let m = 0; m < 60; m += 5) {
+                   if (h === closeHour && m > 0) continue;
+                   const slotStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                   
+                   // if same day, only pick future slots
+                   if (date === todayStr) {
+                      const curTimeMinutes = now.getHours() * 60 + now.getMinutes();
+                      const slotMinutes = h * 60 + m;
+                      if (slotMinutes <= curTimeMinutes) continue;
+                   }
+                   
+                   if (!data.includes(slotStr)) {
+                      fallbackSlot = slotStr;
+                      break;
+                   }
+                 }
+                 if (fallbackSlot) break;
+               }
+               if (fallbackSlot) setTime(fallbackSlot);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingSlots(false);
+      }
+    }
+    fetchSlots();
+  }, [date, tenant.id, tenant.businessHours, barberId]);
   const toggleService = (id: string) => {
     const newSet = new Set(selectedServices);
     if (newSet.has(id)) newSet.delete(id);
@@ -38,14 +127,29 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
     return acc + (services.find(s => s.id === id)?.basePrice || 0);
   }, 0);
 
-  const handleNextStep1 = (e: React.FormEvent) => {
+  const handleNextStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date || !time || !clientName || !clientPhone) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
+    
+    // Validar agendamento (conflito do barbeiro ou estabelecimento fechado)
+    setLoading(true);
     setError("");
-    setStep(2);
+    try {
+      await validateInitialSlot({
+        tenantId: tenant.id,
+        dateStr: date,
+        timeStr: time,
+        barberId: barberId || null
+      });
+      setStep(2);
+    } catch(err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFinish = async () => {
@@ -85,7 +189,7 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
           Te aguardamos no dia {date.split('-').reverse().join('/')} às {time}.
         </p>
         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200 p-4 rounded-2xl text-sm text-left">
-          <strong>Aviso Importante:</strong> Você precisa fazer o check-in online na plataforma acessando o atalho que receberá, restrito entre 30 a 10 minutos antes do início do seu horário. Caso contrário o horário poderá ser repassado a um encaixe presencial.
+          <strong>Aviso Importante:</strong> Você precisa fazer o check-in online na plataforma acessando o atalho que receberá, restrito até {tenant.checkinMinutes} minutos antes do início do seu horário. Caso contrário o horário poderá ser repassado a um encaixe presencial.
         </div>
       </div>
     );
@@ -107,7 +211,7 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Seu Telefone/WhatsApp</label>
-              <input required value={clientPhone} onChange={e => setClientPhone(e.target.value)} placeholder="(11) 99999-9999" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-zinc-950 dark:border-zinc-800" />
+              <input required value={clientPhone} onChange={e => handlePhoneChange(e.target.value)} placeholder="(11) 99999-9999" className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-zinc-950 dark:border-zinc-800" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -116,7 +220,22 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Horário</label>
-                <input required type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-zinc-950 dark:border-zinc-800" />
+                <TimePickerSheet 
+                  value={time || null} 
+                  onChange={setTime} 
+                  openHour={(() => {
+                    const jsDate = new Date(`${date}T00:00:00`);
+                    const bh = tenant.businessHours.find(b => b.weekday === jsDate.getDay());
+                    return bh ? parseInt(bh.startTime.split(":")[0]) : 9;
+                  })()}
+                  closeHour={(() => {
+                    const jsDate = new Date(`${date}T00:00:00`);
+                    const bh = tenant.businessHours.find(b => b.weekday === jsDate.getDay());
+                    return bh ? parseInt(bh.endTime.split(":")[0]) : 18;
+                  })()}
+                  bookedSlots={bookedSlots}
+                  disabled={loadingSlots}
+                />
               </div>
             </div>
             
@@ -124,16 +243,16 @@ export function BookingWizard({ tenant, services, barbers }: BookingWizardProps)
               <div>
                 <label className="block text-sm font-medium mb-1">Barbeiro de Preferência</label>
                 <select value={barberId} onChange={e => setBarberId(e.target.value)} className="w-full rounded-xl border px-3 py-2 text-sm dark:bg-zinc-950 dark:border-zinc-800 bg-transparent">
-                  <option value="">Qualquer um disponível</option>
-                  {barbers.map(b => (
+                  <option value="">Qualquer profissional disponível</option>
+                  {availableBarbers.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
             )}
             
-            <button type="submit" className="w-full mt-4 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
-              Avançar para Serviços →
+            <button type="submit" disabled={loading} className="w-full mt-4 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 flex justify-center items-center">
+              {loading ? "Validando Horário..." : "Avançar para Serviços →"}
             </button>
           </form>
         </div>

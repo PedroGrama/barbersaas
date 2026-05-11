@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { addService, updateService, deleteService } from "./actions";
+import { useNotification } from "@/components/ToastProvider";
 
 export function ServicesList({ tenantId, initialServices }: { tenantId: string, initialServices: any[] }) {
+  const { toast, confirm } = useNotification();
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
@@ -24,7 +26,7 @@ export function ServicesList({ tenantId, initialServices }: { tenantId: string, 
       setNewPrice("");
       setNewDuration(30);
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message, "error");
     }
     setLoading(false);
   }
@@ -35,18 +37,26 @@ export function ServicesList({ tenantId, initialServices }: { tenantId: string, 
       await updateService(id, editPrice, editDuration);
       setEditingId(null);
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message, "error");
     }
     setLoading(false);
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Deseja remover o serviço "${name}"?`)) return;
+    const ok = await confirm({
+      title: "Excluir Serviço",
+      message: `Deseja remover o serviço "${name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Remover",
+      cancelLabel: "Cancelar"
+    });
+    if (!ok) return;
+    
     setLoading(true);
     try {
       await deleteService(id);
+      toast("Serviço removido com sucesso.", "success");
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message, "error");
     }
     setLoading(false);
   }

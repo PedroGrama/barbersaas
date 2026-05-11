@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requestPasswordReset } from "./actions";
 import { redirect } from "next/navigation";
 
-export default function ForgotPasswordPage({ searchParams }: { searchParams: { success?: string, error?: string } }) {
-  if (searchParams.success) {
+export default async function ForgotPasswordPage({ searchParams }: { searchParams: Promise<{ success?: string, error?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  
+  if (resolvedSearchParams.success) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
         <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border dark:border-zinc-800 p-8 shadow-sm text-center">
@@ -37,9 +39,9 @@ export default function ForgotPasswordPage({ searchParams }: { searchParams: { s
       <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border dark:border-zinc-800 p-8 shadow-sm">
         <h1 className="text-2xl font-bold text-center mb-6">Esqueci minha senha</h1>
         
-        {searchParams.error && (
+        {resolvedSearchParams.error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
-            {searchParams.error}
+            {resolvedSearchParams.error}
           </div>
         )}
 

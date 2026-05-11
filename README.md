@@ -1,36 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BladeHub SaaS
 
-## Getting Started
+BladeHub é uma plataforma SaaS dedicada a barbearias e salões, proporcionando uma gestão inteligente de agenda, profissionais e faturamento.
 
-First, run the development server:
+## Objetivo
+O objetivo central é digitalizar inteiramente as operações do estabelecimento:
+- Agendamento do lado do cliente com check-in automatizado
+- Painel de gestão do barbeiro/unidade
+- Controle estrito de assinaturas (Tenant/SaaS Limits)
 
+## Funcionalidades
+- **Checkout e Agendamento Simplificado**
+- **Distribuição de Profissionais:** Modalidade onde a escolha de um barbeiro específico é travada pelo administrador da unidade, ou liberada redondamente para o cliente final.
+- **Fechamento e Pausa de Agenda:** Cada profissional tem controle e visualização da sua folha de serviço diária.
+- **Dashboard Financeiro Integrado.**
+
+### Iniciar o Projeto
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

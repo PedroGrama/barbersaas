@@ -36,7 +36,7 @@ export default async function ProfilePage() {
         <p className="text-sm text-zinc-500 font-medium">Garanta que suas informações estejam corretas para clientes e colegas.</p>
       </header>
 
-      <ProfileForm user={fullUser} tenant={tenant} isAdmin={isAdmin} />
+      <ProfileForm user={fullUser} tenant={JSON.parse(JSON.stringify(tenant))} isAdmin={isAdmin} />
     </div>
   );
 }

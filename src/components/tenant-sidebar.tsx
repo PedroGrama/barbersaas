@@ -28,7 +28,10 @@ export function TenantSidebar({
   const pathname = usePathname();
 
   const toggle = () => setIsOpen(!isOpen);
-  const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`);
+  const isActive = (path: string) => {
+    if (path === "/tenant") return pathname === "/tenant";
+    return pathname === path || pathname?.startsWith(`${path}/`);
+  };
 
   const handleZoom = (delta: number) => {
     const newZoom = Math.min(Math.max(zoom + delta, 80), 150);
@@ -134,61 +137,55 @@ export function TenantSidebar({
           ))}
         </nav>
 
-        {/* Minimalist Sidebar Footer */}
-        <div className="mt-auto px-4 pb-6 space-y-6 pt-6 border-t border-zinc-100 dark:border-white/5 bg-white dark:bg-zinc-950">
+        {/* Professional Sidebar Footer */}
+        <div className="mt-auto border-t border-zinc-100 dark:border-white/5 bg-white dark:bg-zinc-950 px-4 pb-6 pt-6">
           
-          {/* Acessibilidade & Tema (Unified Line) */}
-          <div className="space-y-4">
-             <span className="px-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-600">Sistema</span>
-             <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-4">
-                   {/* Zoom Controls (Ghost Style) */}
-                   <div className="flex items-center gap-2">
-                      <button onClick={() => handleZoom(-10)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                         <ZoomOut className="w-4 h-4" />
-                      </button>
-                      <span className="text-[10px] font-black text-zinc-500 w-8 text-center">{zoom}%</span>
-                      <button onClick={() => handleZoom(10)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                         <ZoomIn className="w-4 h-4" />
-                      </button>
-                   </div>
-                   
-                   <div className="h-4 w-px bg-zinc-100 dark:bg-white/5" />
-
-                   {/* Quick Access Icons */}
-                   <div className="flex items-center gap-3">
-                      <button className="text-zinc-400 hover:text-blue-500 transition-colors" title="VLibras">
-                         <HelpingHand className="w-4 h-4" />
-                      </button>
-                      <button className="text-zinc-400 hover:text-blue-500 transition-colors" title="Leitor de Voz">
-                         <Volume2 className="w-4 h-4" />
-                      </button>
-                   </div>
+          {/* Acessibilidade & Tema (Unified Discrete Row) */}
+          <div className="mb-6 space-y-4">
+            <h3 className="px-2 text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em]">
+              SISTEMA
+            </h3>
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                {/* Zoom Controls (Ghost Style) */}
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <button onClick={() => handleZoom(-10)} className="hover:text-zinc-900 dark:hover:text-white transition-colors p-1">
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-[10px] font-bold min-w-[24px] text-center">{zoom}%</span>
+                  <button onClick={() => handleZoom(10)} className="hover:text-zinc-900 dark:hover:text-white transition-colors p-1">
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
                 </div>
+                
+                <div className="h-4 w-px bg-zinc-100 dark:bg-white/5" />
+              </div>
 
-                {/* Theme Toggle in the same line */}
-                <ThemeToggle />
-             </div>
+              {/* Theme Toggle (Discrete) */}
+              <ThemeToggle />
+            </div>
           </div>
 
-          {/* User Profile Section */}
+          {/* User Profile Section (Otimizada) */}
           <div className="flex items-center gap-3 px-2 pt-6 border-t border-zinc-100 dark:border-white/5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm transition-transform hover:scale-105">
                <UserCircle2 className="w-6 h-6 text-zinc-400" />
             </div>
             
             <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <Link href="/tenant/profile" className="text-xs font-black text-zinc-900 dark:text-white truncate hover:text-blue-600 transition-colors">
+              <div className="flex items-center justify-between gap-1">
+                <Link href="/tenant/profile" className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 truncate hover:text-blue-600 transition-colors">
                    {userName || "Perfil"}
                 </Link>
                 <form action="/api/auth/logout" method="post">
-                  <button className="p-1 rounded-md text-zinc-400 hover:text-red-500 transition-colors" title="Sair">
-                    <LogOut className="w-3.5 h-3.5" />
+                  <button className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all" title="Sair">
+                    <LogOut className="w-4 h-4" />
                   </button>
                 </form>
               </div>
-              <span className="text-[10px] text-zinc-500 truncate font-semibold" title={userEmail}>{userEmail}</span>
+              <span className="text-[10px] text-zinc-500 truncate font-medium -mt-0.5 tracking-tight" title={userEmail}>
+                {userEmail}
+              </span>
             </div>
           </div>
         </div>

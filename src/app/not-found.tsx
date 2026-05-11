@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Scissors, Home, ArrowLeft } from "lucide-react";
 
@@ -25,7 +27,7 @@ export default function NotFound() {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-xs">
         <Link 
           href="/" 
           className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-white py-4 text-sm font-bold text-zinc-950 hover:bg-zinc-200 transition shadow-xl shadow-white/5"
@@ -41,7 +43,7 @@ export default function NotFound() {
       </div>
 
       <footer className="pt-12">
-        <p className="text-[10px] font-bold text-zinc-700 uppercase tracking-[0.2em]">StudioFlow © 2026</p>
+        <p className="text-[10px] font-bold text-zinc-700 uppercase tracking-[0.2em]">BladeHub © 2026</p>
       </footer>
     </div>
   );

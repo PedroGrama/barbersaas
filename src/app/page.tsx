@@ -36,12 +36,12 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm font-bold text-zinc-400 hover:text-white transition">
               Entrar
             </Link>
-            <Link href="/login" className="text-sm font-black bg-white text-zinc-950 px-6 py-2.5 rounded-full hover:bg-zinc-200 transition shadow-xl shadow-white/5">
+            <Link href="/register" className="text-sm font-black bg-white text-zinc-950 px-6 py-2.5 rounded-full hover:bg-zinc-200 transition shadow-xl shadow-white/5">
               Começar Agora
             </Link>
           </nav>
           {/* Mobile CTA */}
-          <Link href="/login" className="md:hidden text-xs font-black bg-blue-600 text-white px-5 py-2.5 rounded-full">
+          <Link href="/register" className="md:hidden text-xs font-black bg-blue-600 text-white px-5 py-2.5 rounded-full">
             Acessar
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5"
           >
-            <Link href="/login" className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-full text-base font-black hover:bg-blue-500 transition-all shadow-2xl shadow-blue-600/40 active:scale-95">
+            <Link href="/register" className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-full text-base font-black hover:bg-blue-500 transition-all shadow-2xl shadow-blue-600/40 active:scale-95">
               Criar Conta Grátis
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -277,7 +277,7 @@ export default function LandingPage() {
               <span className="text-white font-bold">Escalabilidade, segurança e design premium.</span>
             </motion.p>
             <motion.div {...fadeUp} className="flex flex-col items-center gap-6">
-              <Link href="/login" className="px-12 py-6 rounded-full bg-white text-zinc-950 text-lg font-black hover:bg-zinc-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)] active:scale-95 flex items-center gap-3">
+              <Link href="/register" className="px-12 py-6 rounded-full bg-white text-zinc-950 text-lg font-black hover:bg-zinc-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)] active:scale-95 flex items-center gap-3">
                 Começar Teste de 30 Dias
                 <Scissors className="w-5 h-5" />
               </Link>

@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import { ToastProvider } from "@/components/ToastProvider";
+import { NotificationProvider } from "@/components/ToastProvider";
 import { Poppins } from "next/font/google";
 
 const poppins = Poppins({
@@ -22,8 +22,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "StudioFlow",
-  description: "Plataforma multi-tenant para estabelecimentos",
+  title: "BladeHub",
+  description: "Plataforma SaaS Premium para estabelecimentos de beleza",
 };
 
 export default function RootLayout({
@@ -34,11 +34,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${poppins.variable} font-sans antialiased text-zinc-900 bg-zinc-50`}
+        className={`${poppins.variable} font-sans antialiased text-zinc-900 bg-zinc-50 dark:bg-zinc-950`}
       >
-        <ToastProvider>
+        <NotificationProvider>
           {children}
-        </ToastProvider>
+        </NotificationProvider>
       </body>
     </html>
   );

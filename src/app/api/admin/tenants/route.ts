@@ -80,20 +80,20 @@ export async function POST(req: Request) {
     data: defaultHours.map(dh => ({ ...dh, tenantId: tenant.id, barberId: adminUser.id })),
   });
 
-  const defaultServices = [
-    { name: "Corte de cabelo", basePrice: 40, durationMinutes: 30 },
-    { name: "Barba", basePrice: 35, durationMinutes: 30 },
-    { name: "Corte + Barba", basePrice: 70, durationMinutes: 60 },
-    { name: "Pezinho", basePrice: 15, durationMinutes: 15 },
-    { name: "Pigmentação de barba", basePrice: 30, durationMinutes: 30 },
-    { name: "Hidratação capilar", basePrice: 40, durationMinutes: 30 },
-    { name: "Relaxamento/alisamento", basePrice: 80, durationMinutes: 60 },
-    { name: "Sobrancelha", basePrice: 20, durationMinutes: 15 },
-    { name: "Limpeza de pele", basePrice: 50, durationMinutes: 30 },
-    { name: "Depilação (cera/laser)", basePrice: 60, durationMinutes: 45 },
-    { name: "Platinado/Descolorido", basePrice: 120, durationMinutes: 120 },
-    { name: "Coloração", basePrice: 80, durationMinutes: 60 },
-    { name: "Progressiva", basePrice: 150, durationMinutes: 90 },
+   const defaultServices = [
+    { name: "Corte de cabelo", basePrice: "40.00", durationMinutes: 30 },
+    { name: "Barba", basePrice: "35.00", durationMinutes: 30 },
+    { name: "Corte + Barba", basePrice: "70.00", durationMinutes: 60 },
+    { name: "Pezinho", basePrice: "15.00", durationMinutes: 15 },
+    { name: "Pigmentação de barba", basePrice: "30.00", durationMinutes: 30 },
+    { name: "Hidratação capilar", basePrice: "40.00", durationMinutes: 30 },
+    { name: "Relaxamento/alisamento", basePrice: "80.00", durationMinutes: 60 },
+    { name: "Sobrancelha", basePrice: "20.00", durationMinutes: 15 },
+    { name: "Limpeza de pele", basePrice: "50.00", durationMinutes: 30 },
+    { name: "Depilação (cera/laser)", basePrice: "60.00", durationMinutes: 45 },
+    { name: "Platinado/Descolorido", basePrice: "120.00", durationMinutes: 120 },
+    { name: "Coloração", basePrice: "80.00", durationMinutes: 60 },
+    { name: "Progressiva", basePrice: "150.00", durationMinutes: 90 },
   ];
 
   await prisma.service.createMany({

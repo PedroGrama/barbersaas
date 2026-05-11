@@ -1,7 +1,7 @@
 import { getSessionUser } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { redirect } from "next/navigation";
-import { HoursForm } from "./HoursForm";
+import { HoursForm } from "@/app/tenant/settings/hours/HoursForm";
 
 export default async function TenantHoursPage() {
   const user = await getSessionUser();

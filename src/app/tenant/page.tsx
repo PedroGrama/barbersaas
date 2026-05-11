@@ -32,6 +32,43 @@ export default async function TenantHome({ searchParams }: { searchParams: Promi
 
   const dateStr = targetDate.toISOString().split('T')[0];
 
+  const getDisplayStatus = (a: any) => {
+    let text = "";
+    let color = "";
+    
+    if (a.status === "confirmed") {
+      if (a.clientConfirmedAt) {
+        text = "Agendado";
+        color = "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100/50 dark:border-blue-500/20";
+      } else if (new Date() >= a.scheduledStart) {
+        text = "Atrasado";
+        color = "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-100/50 dark:border-red-500/20";
+      } else {
+        text = "Pré-agendado";
+        color = "bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 border-zinc-200 dark:border-white/20";
+      }
+    } else {
+       const statusPt: Record<string, string> = {
+          in_progress: "Em atendimento",
+          awaiting_payment: "Aguard. pagamento",
+          done: "Concluído",
+          cancelled: "Cancelado",
+          no_show: "Não compareceu",
+       };
+       const statusColor: Record<string, string> = {
+          in_progress: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100/50 dark:border-amber-500/20",
+          awaiting_payment: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 border-orange-100/50 dark:border-orange-500/20",
+          done: "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 border-green-100/50 dark:border-green-500/20",
+          cancelled: "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-100/50 dark:border-red-500/20",
+          no_show: "bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400 border-zinc-200 dark:border-white/10",
+       };
+       text = statusPt[a.status] || a.status;
+       color = statusColor[a.status] || "bg-zinc-100 text-zinc-500";
+    }
+    
+    return { text, color };
+  };
+
   return (
     <main className="p-8 max-w-6xl mx-auto font-sans min-h-screen">
       <div className="flex flex-col gap-8">
@@ -85,22 +122,7 @@ export default async function TenantHome({ searchParams }: { searchParams: Promi
               </thead>
               <tbody className="divide-y divide-zinc-50 dark:divide-white/5">
                 {appointments.map((a) => {
-                  const statusPt: Record<string, string> = {
-                    confirmed: "Confirmado",
-                    in_progress: "Em atendimento",
-                    awaiting_payment: "Aguard. pagamento",
-                    done: "Concluído",
-                    cancelled: "Cancelado",
-                    no_show: "Não compareceu",
-                  };
-                  const statusColor: Record<string, string> = {
-                    confirmed: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100/50 dark:border-blue-500/20",
-                    in_progress: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-100/50 dark:border-amber-500/20",
-                    awaiting_payment: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 border-orange-100/50 dark:border-orange-500/20",
-                    done: "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 border-green-100/50 dark:border-green-500/20",
-                    cancelled: "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-100/50 dark:border-red-500/20",
-                    no_show: "bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400 border-zinc-200 dark:border-white/10",
-                  };
+                  const { text, color } = getDisplayStatus(a);
                   return (
                     <tr key={a.id} className="group hover:bg-zinc-50 dark:hover:bg-white/2 transition-colors duration-200">
                       <td className="py-5 px-8">
@@ -120,8 +142,8 @@ export default async function TenantHome({ searchParams }: { searchParams: Promi
                         </td>
                       )}
                       <td className="py-5 px-6">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${statusColor[a.status] ?? "bg-zinc-100 text-zinc-500"}`}>
-                          {statusPt[a.status] ?? a.status}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${color}`}>
+                          {text}
                         </span>
                       </td>
                       <td className="py-5 px-8 text-right">
@@ -141,22 +163,7 @@ export default async function TenantHome({ searchParams }: { searchParams: Promi
             {/* Mobile Card List */}
             <div className="grid grid-cols-1 divide-y divide-zinc-50 dark:divide-white/5 md:hidden">
               {appointments.map((a) => {
-                const statusPt: Record<string, string> = {
-                  confirmed: "Confirmado",
-                  in_progress: "Em atendimento",
-                  awaiting_payment: "Aguard. pagamento",
-                  done: "Concluído",
-                  cancelled: "Cancelado",
-                  no_show: "Não compareceu",
-                };
-                const statusColor: Record<string, string> = {
-                  confirmed: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
-                  in_progress: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
-                  awaiting_payment: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400",
-                  done: "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400",
-                  cancelled: "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400",
-                  no_show: "bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400",
-                };
+                const { text, color } = getDisplayStatus(a);
 
                 return (
                   <div key={a.id} className="p-5 space-y-4">
@@ -164,8 +171,8 @@ export default async function TenantHome({ searchParams }: { searchParams: Promi
                       <span className="text-xs font-black text-zinc-900 dark:text-white bg-zinc-100 dark:bg-white/5 py-1 px-2.5 rounded-lg border border-zinc-200 dark:border-white/10">
                         {a.scheduledStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter border ${statusColor[a.status]}`}>
-                        {statusPt[a.status] || a.status}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter border ${color}`}>
+                        {text}
                       </span>
                     </div>
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { notFound } from "next/navigation";
-import { BookingWizard } from "./BookingWizard";
+import { BookingWizard } from "@/app/book/[slug]/BookingWizard";
 
 export default async function BookingPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
@@ -11,7 +11,7 @@ export default async function BookingPage({ params }: { params: Promise<{ slug: 
     include: {
       services: { where: { isActive: true } },
       users: { where: { isBarber: true, isActive: true, deletedAt: null }, select: { id: true, name: true } },
-      tenantBusinessHours: true,
+      businessHours: true,
       barberBusinessHours: { where: { isClosed: false } }
     }
   });
@@ -22,18 +22,26 @@ export default async function BookingPage({ params }: { params: Promise<{ slug: 
   const pojoTenant = {
     id: tenant.id,
     name: tenant.name,
+    slug: tenant.slug,
     logoUrl: tenant.logoUrl,
-    allowChooseBarber: tenant.allowChooseBarber
+    allowChooseBarber: tenant.allowChooseBarber,
+    checkinMinutes: (tenant as any).checkinMinutes,
+    businessHours: tenant.businessHours.map(bh => ({
+      weekday: bh.weekday,
+      startTime: bh.startTime,
+      endTime: bh.endTime,
+      isClosed: bh.isClosed
+    }))
   };
 
-  const services = tenant.services.map(s => ({
+  const services = (tenant as any).services.map((s: any) => ({
     id: s.id,
     name: s.name,
     basePrice: Number(s.basePrice),
     durationMinutes: s.durationMinutes
   }));
 
-  const barbers = tenant.users.map(u => ({
+  const barbers = (tenant as any).users.map((u: any) => ({
     id: u.id,
     name: u.name
   }));

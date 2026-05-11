@@ -2,6 +2,128 @@
 
 import { prisma } from "@/server/db";
 
+function timeToMins(t: string | null) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+export async function getAvailableBarbers(tenantId: string, dateStr: string, timeStr: string) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const startTimeMins = h * 60 + m;
+
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const localDate = new Date(y, mo - 1, d);
+  const weekday = localDate.getDay();
+  const scheduledStart = new Date(`${dateStr}T${timeStr}:00`);
+
+  const barbers = await prisma.user.findMany({
+    where: { tenantId, isBarber: true, isActive: true, deletedAt: null }
+  });
+
+  const availableBarbers = [];
+
+  for (const barber of barbers) {
+    const barberHour = await prisma.barberBusinessHour.findFirst({ where: { tenantId, barberId: barber.id, weekday } });
+    if (!barberHour || barberHour.isClosed) continue;
+
+    const bBarbStart = timeToMins(barberHour.startTime)!;
+    const bBarbEnd = timeToMins(barberHour.endTime)!;
+    if (startTimeMins < bBarbStart || startTimeMins >= bBarbEnd) continue;
+
+    const bBreakStart = timeToMins(barberHour.breakStart);
+    const bBreakEnd = timeToMins(barberHour.breakEnd);
+    if (bBreakStart !== null && bBreakEnd !== null) {
+      if (startTimeMins >= bBreakStart && startTimeMins < bBreakEnd) continue;
+    }
+    
+    // Check if there is already an appointment starting at this exact time, or overlapping this start time
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        barberId: barber.id,
+        status: { not: "cancelled" },
+        scheduledStart: { lte: scheduledStart },
+        scheduledEnd: { gt: scheduledStart }
+      }
+    });
+
+    if (!conflict) {
+      availableBarbers.push(barber);
+    }
+  }
+
+  return availableBarbers.map(b => ({ id: b.id, name: b.name }));
+}
+
+export async function validateInitialSlot(data: {
+  tenantId: string,
+  dateStr: string,
+  timeStr: string,
+  barberId: string | null
+}) {
+  const { tenantId, dateStr, timeStr, barberId } = data;
+  const [h, m] = timeStr.split(':').map(Number);
+  const startTimeMins = h * 60 + m;
+
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const localDate = new Date(y, mo - 1, d);
+  const weekday = localDate.getDay();
+  const scheduledStart = new Date(`${dateStr}T${timeStr}:00`);
+
+  const tenantHour = await prisma.tenantBusinessHour.findFirst({ where: { tenantId, weekday } });
+  if (!tenantHour || tenantHour.isClosed) throw new Error("A barbearia está fechada neste dia.");
+  
+  const bShopStart = timeToMins(tenantHour.startTime)!;
+  const bShopEnd = timeToMins(tenantHour.endTime)!;
+  if (startTimeMins < bShopStart || startTimeMins >= bShopEnd) {
+    throw new Error(`A barbearia funciona apenas de ${tenantHour.startTime} às ${tenantHour.endTime} neste dia.`);
+  }
+  
+  const tBreakStart = timeToMins(tenantHour.breakStart);
+  const tBreakEnd = timeToMins(tenantHour.breakEnd);
+  if (tBreakStart !== null && tBreakEnd !== null) {
+    if (startTimeMins >= tBreakStart && startTimeMins < tBreakEnd) {
+      throw new Error(`O horário escolhido conflita com o horário de pausa da barbearia (${tenantHour.breakStart} às ${tenantHour.breakEnd}).`);
+    }
+  }
+
+  if (barberId) {
+    const barberHour = await prisma.barberBusinessHour.findFirst({ where: { tenantId, barberId, weekday } });
+    if (!barberHour || barberHour.isClosed) throw new Error("O barbeiro selecionado não atende neste dia.");
+
+    const bBarbStart = timeToMins(barberHour.startTime)!;
+    const bBarbEnd = timeToMins(barberHour.endTime)!;
+    if (startTimeMins < bBarbStart || startTimeMins >= bBarbEnd) {
+      throw new Error(`O barbeiro atende apenas de ${barberHour.startTime} às ${barberHour.endTime} neste dia.`);
+    }
+
+    const bBreakStart = timeToMins(barberHour.breakStart);
+    const bBreakEnd = timeToMins(barberHour.breakEnd);
+    if (bBreakStart !== null && bBreakEnd !== null) {
+      if (startTimeMins >= bBreakStart && startTimeMins < bBreakEnd) {
+        throw new Error(`Este horário conflita com a pausa do barbeiro (${barberHour.breakStart} às ${barberHour.breakEnd}).`);
+      }
+    }
+
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        barberId,
+        status: { not: "cancelled" },
+        scheduledStart: { lte: scheduledStart },
+        scheduledEnd: { gt: scheduledStart }
+      }
+    });
+
+    if (conflict) {
+      throw new Error("Este horário já foi reservado com este barbeiro. Por favor, escolha outro profissional ou horário.");
+    }
+  }
+
+  return true;
+}
+
 export async function createPublicAppointment(data: {
   tenantId: string,
   clientName: string,
@@ -62,16 +184,13 @@ export async function createPublicAppointment(data: {
     barberId = barbers[0].id; // O primeiro tem menos
   }
 
-  // 2.5 Validation: Business Hours
-  const weekday = scheduledStart.getDay();
-  const startTimeMins = scheduledStart.getHours() * 60 + scheduledStart.getMinutes();
+  const [h, m] = timeStr.split(':').map(Number);
+  const startTimeMins = h * 60 + m;
   const endTimeMins = startTimeMins + totalDurationMinutes;
 
-  function timeToMins(t: string | null) {
-    if (!t) return null;
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  }
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const localDate = new Date(y, mo - 1, d);
+  const weekday = localDate.getDay();
 
   const tenantHour = await prisma.tenantBusinessHour.findFirst({ where: { tenantId, weekday } });
   if (!tenantHour || tenantHour.isClosed) throw new Error("A barbearia está fechada neste dia.");

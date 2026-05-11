@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateAppointmentStatus, finalizeReview, registerPayment, repassAppointment } from "./actions";
+import { useNotification } from "@/components/ToastProvider";
 import { 
   Scissors, 
   CheckCircle2, 
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 
 export function AppointmentWorkflow({ appointment, tenantServices, pixKey, currentUserId }: any) {
+  const { toast, confirm } = useNotification();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(appointment?.status || "confirmed");
   const [isReviewing, setIsReviewing] = useState(false);
@@ -55,7 +57,7 @@ export function AppointmentWorkflow({ appointment, tenantServices, pixKey, curre
       setStatus("awaiting_payment");
       setIsReviewing(false);
     } catch(e: any) {
-      alert(e.message);
+      toast(e.message, "error");
     }
     setLoading(false);
   };
@@ -66,25 +68,32 @@ export function AppointmentWorkflow({ appointment, tenantServices, pixKey, curre
       await registerPayment(appointment.id, method, currentTotal, pixKey?.id);
       setStatus("done");
     } catch(e: any) {
-       alert(e.message);
+       toast(e.message, "error");
     }
     setLoading(false);
   };
 
   const handleRepass = async () => {
-    if (!confirm("Tem certeza que deseja repassar/cancelar este agendamento?")) return;
+    const ok = await confirm({
+      title: "Repassar Agendamento",
+      message: "Tem certeza que deseja repassar/cancelar este agendamento? O sistema tentará encontrar outro profissional disponível ou cancelará o horário.",
+      confirmLabel: "Repassar/Cancelar",
+      cancelLabel: "Voltar"
+    });
+    if (!ok) return;
+
     setLoading(true);
     try {
       const res = await repassAppointment(appointment.id);
       if (res.repassed) {
-        alert("Agendamento repassado para outro profissional disponível!");
-        window.location.href = "/tenant";
+        toast("Agendamento repassado para outro profissional disponível!", "success");
+        setTimeout(() => window.location.href = "/tenant", 1500);
       } else {
-        alert("Nenhum profissional disponível. O agendamento foi cancelado.");
+        toast("Nenhum profissional disponível. O agendamento foi cancelado.", "warning");
         setStatus("cancelled");
       }
     } catch(e: any) {
-      alert("Erro: " + e.message);
+      toast("Erro: " + e.message, "error");
     }
     setLoading(false);
   };

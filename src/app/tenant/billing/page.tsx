@@ -43,7 +43,7 @@ export default async function TenantBillingPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-100 dark:border-white/5 pb-8">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 tracking-tighter">Assinatura & Planos</h1>
-          <p className="text-zinc-500 font-medium">Gerencie sua licença BladeHub e acompanhe seus débitos.</p>
+          <p className="text-zinc-500 font-medium">Gerencie sua licença BladeHub e acompanhe seu plano.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${statusColors[tenant.status]}`}>

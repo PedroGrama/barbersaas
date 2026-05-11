@@ -72,14 +72,14 @@ export function DashboardClient({ data }: { data?: DashboardData }) {
       >
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-bold text-white tracking-tight">Painel de Gestão</h2>
+            <h2 className="text-3xl font-bold text-foreground tracking-tight">Painel de Gestão</h2>
             {IS_DEV && (
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
                 Modo Simulação
               </span>
             )}
           </div>
-          <p className="text-zinc-500 text-sm">Visão consolidada de todos os estabelecimentos StudioFlow.</p>
+          <p className="text-zinc-500 text-sm">Visão consolidada de todos os estabelecimentos BladeHub.</p>
         </div>
         
         <select
@@ -139,11 +139,11 @@ export function DashboardClient({ data }: { data?: DashboardData }) {
       {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-7 lg:grid-cols-12">
         <motion.div 
-          className="md:col-span-12 lg:col-span-8 rounded-3xl border border-white/5 bg-white/3 backdrop-blur-xl p-8 shadow-2xl"
+          className="md:col-span-12 lg:col-span-8 rounded-3xl border border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/3 backdrop-blur-xl p-8 shadow-xl dark:shadow-2xl"
           {...fadeUp}
         >
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-bold text-white">Crescimento da Plataforma</h3>
+            <h3 className="text-lg font-bold text-foreground">Crescimento da Plataforma</h3>
             <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /> Receita</span>
             </div>
@@ -252,7 +252,7 @@ function KPICard({ title, value, icon: Icon, color, trend, warning }: any) {
         initial: { opacity: 0, y: 15 },
         animate: { opacity: 1, y: 0 }
       }}
-      className="rounded-3xl border border-white/5 bg-white/3 backdrop-blur-xl p-6 shadow-2xl group hover:bg-white/5 transition-colors cursor-default"
+      className="rounded-3xl border border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-white/3 backdrop-blur-xl p-6 shadow-xl dark:shadow-2xl group hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-default"
     >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-xl ${colorClasses[color]}`}>
@@ -267,7 +267,7 @@ function KPICard({ title, value, icon: Icon, color, trend, warning }: any) {
       <div className="space-y-1">
         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{title}</p>
         <div className="flex items-center gap-2">
-          <h3 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">{value}</h3>
+          <h3 className="text-2xl font-bold text-foreground group-hover:text-blue-500 transition-colors">{value}</h3>
           {warning && (
             <span className="animate-pulse w-2 h-2 rounded-full bg-red-500" />
           )}

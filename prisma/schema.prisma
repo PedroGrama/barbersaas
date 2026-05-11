@@ -43,6 +43,9 @@ enum AppointmentStatus {
   done
   cancelled
   no_show
+  PENDING
+  PAID
+  CANCELED
 }
 
 enum PaymentMethod {
@@ -92,6 +95,15 @@ model Tenant {
   pixKey    String?  @map("pix_key")
   allowChooseBarber Boolean @default(true) @map("allow_choose_barber")
   
+  // Mercado Pago & Payment Integration
+  mp_access_token String?   @map("mp_access_token")
+  payment_method  TenantPaymentMode @default(PIX_DIRECT) @map("payment_method")
+  
+  // Social Media & Contact
+  instagram String?
+  facebook  String?
+  whatsapp  String?
+  
   licencaTipo      LicencaTipo   @default(TESTE_GRATIS) @map("licenca_tipo")
   status           TenantStatus  @default(ATIVO)
   testeExpiraEm    DateTime?     @map("teste_expira_em")
@@ -99,6 +111,7 @@ model Tenant {
   taxaServicoPct   Decimal?      @default(3.0) @map("taxa_servico_pct") @db.Decimal(5, 2)
   saldoDevedor     Decimal       @default(0) @map("saldo_devedor") @db.Decimal(10, 2)
   limiteCancelamentoMensal Int   @default(20) @map("limite_cancelamento_mensal")
+  checkinMinutes   Int           @default(15) @map("checkin_minutes")
 
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
@@ -323,6 +336,7 @@ model Payment {
   createdBy   User?       @relation("PaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
+  @@index([tenantId, createdAt])
   @@index([tenantId, appointmentId])
   @@map("payments")
 }
@@ -360,7 +374,7 @@ model PasswordResetToken {
 
 model SystemConfig {
   id               String   @id @default("global")
-  contactEmail     String   @default("suporte@studioflow.com")
+  contactEmail     String   @default("suporte@bladehub.app")
   contactPhone     String   @default("")
   platformPixKey   String   @default("")
   defaultTaxPct    Decimal  @default(3.0) @db.Decimal(5, 2)

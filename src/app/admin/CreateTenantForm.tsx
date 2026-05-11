@@ -64,7 +64,7 @@ export function CreateTenantForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
-              placeholder="Ex: StudioFlow Premium"
+              placeholder="Ex: BladeHub Barber"
               required
             />
           </div>
